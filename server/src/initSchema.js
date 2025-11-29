@@ -2,8 +2,12 @@
 import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'test';
+const MONGO_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.MONGODB_DB_NAME || 'khu_lien_hop_tt';
+
+if (!MONGO_URI) {
+  throw new Error('MONGODB_URI is not set for initSchema');
+}
 
 async function run() {
   const client = new MongoClient(MONGO_URI);

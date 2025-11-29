@@ -1,7 +1,11 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017';
-const DB_NAME = process.env.DB_NAME || 'test';
+const MONGO_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.MONGODB_DB_NAME || 'khu_lien_hop_tt';
+
+if (!MONGO_URI) {
+  throw new Error('MONGODB_URI is not set for User model');
+}
 
 let client;
 let clientPromise;
