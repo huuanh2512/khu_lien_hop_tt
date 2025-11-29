@@ -41,6 +41,8 @@ class ApiService {
 
   final Dio _dio;
   final String baseUrl;
+  static const String _missingInvoicePayloadMessage =
+      'Không nhận được dữ liệu hoá đơn cập nhật';
 
   static String _authToken = '';
   static Future<String?> Function()? _tokenProvider;
@@ -163,6 +165,22 @@ class ApiService {
       headers['Authorization'] = 'Bearer $token';
     }
     return headers;
+  }
+
+  StaffInvoice _mapResponseToStaffInvoice(dynamic decoded) {
+    Map<String, dynamic>? candidate;
+    if (decoded is Map<String, dynamic>) {
+      final nested = decoded['invoice'];
+      if (nested is Map<String, dynamic>) {
+        candidate = nested;
+      } else if (decoded.containsKey('_id') || decoded.containsKey('bookingId')) {
+        candidate = decoded;
+      }
+    }
+    if (candidate != null) {
+      return StaffInvoice.fromJson(candidate);
+    }
+    throw Exception(_missingInvoicePayloadMessage);
   }
 
   Future<List<Sport>> getSports({bool includeCount = true}) async {
@@ -1100,14 +1118,8 @@ class ApiService {
     if (res.statusCode != 200) {
       throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
-    final body = jsonDecode(res.body) as Map<String, dynamic>;
-    final invoiceJson = body['invoice'];
-    if (invoiceJson is Map<String, dynamic>) {
-      return StaffInvoice.fromJson(invoiceJson);
-    }
-    throw Exception(
-      'KhÃ´ng nháº­n Ä‘Æ°á»£c dá»¯ liá»‡u hoÃ¡ Ä‘Æ¡n cáº­p nháº­t',
-    );
+    final decoded = jsonDecode(res.body);
+    return _mapResponseToStaffInvoice(decoded);
   }
 
   Future<StaffInvoice> staffUpdateInvoiceStatus(
@@ -1130,14 +1142,8 @@ class ApiService {
     if (res.statusCode != 200) {
       throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
-    final body = jsonDecode(res.body) as Map<String, dynamic>;
-    final invoiceJson = body['invoice'];
-    if (invoiceJson is Map<String, dynamic>) {
-      return StaffInvoice.fromJson(invoiceJson);
-    }
-    throw Exception(
-      'KhÃ´ng nháº­n Ä‘Æ°á»£c dá»¯ liá»‡u hoÃ¡ Ä‘Æ¡n cáº­p nháº­t',
-    );
+    final decoded = jsonDecode(res.body);
+    return _mapResponseToStaffInvoice(decoded);
   }
 
   Future<Sport?> staffUpdateSport(
