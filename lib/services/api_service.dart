@@ -1113,8 +1113,14 @@ class ApiService {
   Future<StaffInvoice> staffUpdateInvoiceStatus(
     String invoiceId, {
     required String status,
+    bool? paid,
+    DateTime? paidAt,
   }) async {
-    final payload = <String, dynamic>{'status': status};
+    final payload = <String, dynamic>{
+      'status': status,
+      if (paid != null) 'paid': paid,
+      if (paidAt != null) 'paidAt': paidAt.toUtc().toIso8601String(),
+    };
 
     final res = await _patch(
       Uri.parse('$baseUrl/api/staff/invoices/$invoiceId/status'),
@@ -1418,23 +1424,31 @@ class ApiService {
     String? phone,
     String? role,
     String? status,
-    String? resetPassword,
     String? facilityId,
     String? gender,
     DateTime? dateOfBirth,
     String? mainSportId,
+    String? resetPassword,
   }) async {
-    final payload = {
-      if (name != null) 'name': name,
-      if (phone != null) 'phone': phone,
-      if (role != null) 'role': role,
-      if (status != null) 'status': status,
-      if (resetPassword != null) 'resetPassword': resetPassword,
-      if (facilityId != null) 'facilityId': facilityId,
-      if (gender != null) 'gender': gender,
-      if (dateOfBirth != null) 'dateOfBirth': dateOfBirth.toIso8601String(),
-      if (mainSportId != null) 'mainSportId': mainSportId,
-    };
+    final payload = <String, dynamic>{};
+    if (name != null) payload['name'] = name;
+    if (phone != null) payload['phone'] = phone;
+    if (role != null) payload['role'] = role;
+    if (status != null) payload['status'] = status;
+    if (facilityId != null) payload['facilityId'] = facilityId;
+    if (gender != null) payload['gender'] = gender;
+    if (dateOfBirth != null) {
+      payload['dateOfBirth'] = dateOfBirth.toIso8601String();
+    }
+    if (mainSportId != null) payload['mainSportId'] = mainSportId;
+    if (resetPassword != null && resetPassword.isNotEmpty) {
+      payload['resetPassword'] = resetPassword;
+    }
+
+    if (payload.isEmpty) {
+      throw Exception('Không có thay đổi nào được gửi lên');
+    }
+
     final res = await _put(
       Uri.parse('$baseUrl/api/admin/users/$id'),
       headers: _headers(json: true),

@@ -328,8 +328,13 @@ class _StaffInvoicesPageState extends State<StaffInvoicesPage> {
     if (confirm != true) return;
 
     await _performInvoiceAction(invoice.id, () async {
-      await _api.staffUpdateInvoiceStatus(invoice.id, status: 'paid');
-      await _load(showSpinner: false);
+      final updated = await _api.staffUpdateInvoiceStatus(
+        invoice.id,
+        status: 'paid',
+        paid: true,
+      );
+      if (!mounted) return;
+      _applyInvoiceUpdate(updated);
     }, successMessage: 'Đã cập nhật trạng thái hoá đơn.');
   }
 
@@ -365,6 +370,43 @@ class _StaffInvoicesPageState extends State<StaffInvoicesPage> {
     }
     final text = buffer.isEmpty ? '0' : buffer.toString();
     return '${negative ? '-' : ''}$text ₫';
+  }
+
+  StaffInvoiceSummary _recalculateSummaryFromInvoices(
+    List<StaffInvoice> invoices,
+  ) {
+    if (invoices.isEmpty) {
+      return const StaffInvoiceSummary();
+    }
+    double totalInvoiced = 0;
+    double totalPaid = 0;
+    double totalOutstanding = 0;
+    for (final invoice in invoices) {
+      totalInvoiced += invoice.amount;
+      totalPaid += invoice.totalPaid;
+      totalOutstanding += invoice.outstanding;
+    }
+    return StaffInvoiceSummary(
+      invoiceCount: invoices.length,
+      totalInvoiced: totalInvoiced,
+      totalPaid: totalPaid,
+      totalOutstanding: totalOutstanding,
+      totalRevenue: totalPaid,
+    );
+  }
+
+  void _applyInvoiceUpdate(StaffInvoice updated) {
+    final current = List<StaffInvoice>.from(_invoices);
+    final index = current.indexWhere((item) => item.id == updated.id);
+    if (index >= 0) {
+      current[index] = updated;
+    } else {
+      current.insert(0, updated);
+    }
+    setState(() {
+      _invoices = current;
+      _summary = _recalculateSummaryFromInvoices(current);
+    });
   }
 
   Color _statusColor(String status, ThemeData theme) {
