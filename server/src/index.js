@@ -3385,6 +3385,141 @@ app.get('/api/staff/invoices', requireStaff, async (req, res, next) => {
   }
 });
 
+app.patch('/api/staff/invoices/:invoiceId/status', requireStaff, async (req, res, next) => {
+  try {
+    const staffUser = await fetchStaffUser(req);
+    if (!staffUser) return res.status(401).json({ error: 'Unauthenticated' });
+
+    const facilityId = coerceObjectId(staffUser.facilityId);
+    if (!facilityId) {
+      return res.status(403).json({ error: 'Staff user is not assigned to any facility' });
+    }
+
+    const invoiceCandidates = buildIdCandidates(req.params.invoiceId);
+    if (!invoiceCandidates.length) {
+      return res.status(404).json({ error: 'Hoá đơn không tồn tại' });
+    }
+
+    const invoiceDoc = await db.collection('invoices').findOne({ _id: { $in: invoiceCandidates } });
+    if (!invoiceDoc) {
+      return res.status(404).json({ error: 'Hoá đơn không tồn tại' });
+    }
+
+    const bookingId = coerceObjectId(invoiceDoc.bookingId);
+    if (!bookingId) {
+      return res.status(404).json({ error: 'Hoá đơn không hợp lệ' });
+    }
+
+    const bookingDoc = await db.collection('bookings').findOne({ _id: bookingId, facilityId });
+    if (!bookingDoc) {
+      return res.status(404).json({ error: 'Hoá đơn không tồn tại' });
+    }
+
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const $set = {};
+    const $unset = {};
+
+    if (body.status !== undefined) {
+      if (typeof body.status !== 'string' || !body.status.trim().length) {
+        return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+      }
+      $set.status = body.status.trim();
+    }
+
+    const paidAtInput = normalizeDateInput(body.paidAt);
+    if (paidAtInput.provided && paidAtInput.error) {
+      return res.status(400).json({ error: 'paidAt không hợp lệ' });
+    }
+    const paidAtProvided = paidAtInput.provided === true;
+    const paidProvided = body.paid !== undefined;
+
+    if (paidProvided) {
+      if (typeof body.paid !== 'boolean') {
+        return res.status(400).json({ error: 'paid phải là true/false' });
+      }
+      $set.paid = body.paid;
+      if (body.paid) {
+        if (paidAtProvided) {
+          if (!(paidAtInput.value instanceof Date)) {
+            return res.status(400).json({ error: 'paidAt phải là ngày hợp lệ khi paid = true' });
+          }
+          $set.paidAt = paidAtInput.value;
+        } else if (invoiceDoc.paidAt instanceof Date) {
+          $set.paidAt = invoiceDoc.paidAt;
+        } else {
+          $set.paidAt = new Date();
+        }
+        delete $unset.paidAt;
+      } else {
+        $unset.paidAt = '';
+        delete $set.paidAt;
+      }
+    }
+
+    if (!paidProvided && paidAtProvided) {
+      if (paidAtInput.value instanceof Date) {
+        $set.paidAt = paidAtInput.value;
+        delete $unset.paidAt;
+      } else {
+        $unset.paidAt = '';
+        delete $set.paidAt;
+      }
+    }
+
+    if (!Object.keys($set).length && !Object.keys($unset).length) {
+      return res.status(400).json({ error: 'Không có thay đổi nào được gửi lên' });
+    }
+
+    $set.updatedAt = new Date();
+
+    const updateDoc = {};
+    if (Object.keys($set).length) updateDoc.$set = $set;
+    if (Object.keys($unset).length) updateDoc.$unset = $unset;
+
+    await db.collection('invoices').updateOne({ _id: invoiceDoc._id }, updateDoc);
+
+    await recordAudit(req, {
+      actorId: staffUser._id,
+      action: 'staff.invoice-status-update',
+      resource: 'invoice',
+      resourceId: invoiceDoc._id,
+      changes: sanitizeAuditData({ $set, $unset }),
+    });
+
+    const decorated = await db.collection('invoices').aggregate([
+      { $match: { _id: invoiceDoc._id } },
+      {
+        $lookup: {
+          from: 'bookings',
+          let: { bookingId: '$bookingId' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$bookingId'] } } },
+            { $match: { facilityId } },
+          ],
+          as: 'booking',
+        },
+      },
+      { $unwind: { path: '$booking', preserveNullAndEmptyArrays: false } },
+      { $lookup: { from: 'users', localField: 'booking.customerId', foreignField: '_id', as: 'customer' } },
+      { $unwind: { path: '$customer', preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: 'courts', localField: 'booking.courtId', foreignField: '_id', as: 'court' } },
+      { $unwind: { path: '$court', preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: 'payments', localField: '_id', foreignField: 'invoiceId', as: 'payments' } },
+      { $addFields: { bookingCurrency: '$booking.currency' } },
+      { $limit: 1 },
+    ]).toArray();
+
+    const shaped = decorated.map((doc) => shapeStaffInvoice(doc)).filter(Boolean)[0] ?? null;
+    if (!shaped) {
+      return res.status(404).json({ error: 'Hoá đơn không tồn tại' });
+    }
+
+    res.json(shaped);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/staff/profile', requireStaff, async (req, res, next) => {
   try {
     const staffUser = await fetchStaffUser(req);
