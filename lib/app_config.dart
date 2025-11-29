@@ -23,7 +23,7 @@ class AppConfig {
     // Update this with your actual server address
     // If running server locally on your machine and testing on a physical device,
     // use your computer's local network IP (e.g., 'http://192.168.1.x:3000')
-    const defaultServer = 'http://172.242.3.202:3000';
+    const defaultServer = 'https://khu-lien-hop-tt.onrender.com';
 
     try {
       if (Platform.isAndroid) {

@@ -37,7 +37,7 @@ class ApiService {
     _dio.interceptors.add(_AuthInterceptor());
   }
 
-  static const String _defaultBaseUrl = 'http://10.0.2.2:3000';
+  static const String _defaultBaseUrl = 'https://khu-lien-hop-tt.onrender.com';
 
   final Dio _dio;
   final String baseUrl;
