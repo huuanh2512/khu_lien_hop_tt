@@ -307,8 +307,8 @@ class ApiService {
     };
     final payload = <String, dynamic>{
       'sportId': sportId,
-      'desiredStart': desiredStart.toIso8601String(),
-      'desiredEnd': desiredEnd.toIso8601String(),
+      'desiredStart': desiredStart.toUtc().toIso8601String(),
+      'desiredEnd': desiredEnd.toUtc().toIso8601String(),
       if (skillRange.isNotEmpty) 'skillRange': skillRange,
       if (facilityId != null && facilityId.isNotEmpty) 'facilityId': facilityId,
       if (courtId != null && courtId.isNotEmpty) 'courtId': courtId,

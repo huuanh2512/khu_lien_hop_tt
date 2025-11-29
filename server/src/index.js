@@ -736,6 +736,87 @@ function normalizeBookingForResponse(doc) {
   };
 }
 
+function deriveBookingInvoiceAmount(bookingDoc) {
+  if (!bookingDoc) return 0;
+  const candidates = [bookingDoc.total, bookingDoc.pricingSnapshot?.total, bookingDoc.pricingSnapshot?.subtotal];
+  for (const candidate of candidates) {
+    const normalized = coerceNumber(candidate);
+    if (normalized !== null && Number.isFinite(normalized)) {
+      return normalized;
+    }
+  }
+  return 0;
+}
+
+function deriveBookingInvoiceCurrency(bookingDoc) {
+  if (!bookingDoc) return 'VND';
+  const candidates = [bookingDoc.currency, bookingDoc.pricingSnapshot?.currency];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length) {
+      return candidate.trim().toUpperCase();
+    }
+  }
+  return 'VND';
+}
+
+function buildBookingInvoiceDescription(bookingDoc) {
+  const parts = ['Thanh toán đặt sân'];
+  const courtName = typeof bookingDoc?.courtName === 'string' && bookingDoc.courtName.trim().length
+    ? bookingDoc.courtName.trim()
+    : null;
+  if (courtName) parts.push(courtName);
+  const facilityName = typeof bookingDoc?.facilityName === 'string' && bookingDoc.facilityName.trim().length
+    ? bookingDoc.facilityName.trim()
+    : null;
+  if (facilityName) parts.push(facilityName);
+  const start = coerceDateValue(bookingDoc?.start);
+  if (start instanceof Date && !Number.isNaN(start.valueOf())) {
+    parts.push(start.toLocaleString('vi-VN', { hour12: false }));
+  }
+  return parts.join(' | ');
+}
+
+async function ensureBookingInvoice(bookingDoc, { issuedAt } = {}) {
+  if (!db || !bookingDoc || typeof bookingDoc !== 'object') return null;
+  const bookingId = coerceObjectId(bookingDoc._id ?? bookingDoc.bookingId);
+  if (!bookingId) return null;
+
+  const amount = deriveBookingInvoiceAmount(bookingDoc);
+  const currency = deriveBookingInvoiceCurrency(bookingDoc);
+  const dueAt = coerceDateValue(bookingDoc.end) ?? coerceDateValue(bookingDoc.start) ?? new Date();
+  const description = buildBookingInvoiceDescription(bookingDoc);
+  const now = new Date();
+
+  const pricingSnapshot = bookingDoc.pricingSnapshot
+    ? sanitizeAuditData(bookingDoc.pricingSnapshot)
+    : undefined;
+
+  const updateDoc = {
+    $set: cleanObject({
+      amount,
+      currency,
+      dueAt,
+      description,
+      pricingSnapshot,
+      updatedAt: now,
+    }) || {},
+    $setOnInsert: cleanObject({
+      bookingId,
+      status: 'unpaid',
+      issuedAt: issuedAt ?? now,
+      createdAt: now,
+    }) || {},
+  };
+
+  const result = await db.collection('invoices').findOneAndUpdate(
+    { bookingId },
+    updateDoc,
+    { upsert: true, returnDocument: ReturnDocument.AFTER },
+  );
+
+  return result.value ?? null;
+}
+
 function shapeStaffCustomer(userDoc) {
   if (!userDoc || typeof userDoc !== 'object') return null;
   const customer = {
@@ -2036,10 +2117,22 @@ app.post('/api/bookings', async (req, res, next) => {
       },
     });
 
+    const normalizedStatus = typeof createdBooking.status === 'string'
+      ? createdBooking.status.trim().toLowerCase()
+      : '';
+
     try {
       await notifyStaffBookingCreated(createdBooking);
     } catch (notificationError) {
       console.error('Failed to notify staff about new booking', notificationError);
+    }
+
+    if (normalizedStatus === 'confirmed') {
+      try {
+        await ensureBookingInvoice(createdBooking);
+      } catch (invoiceError) {
+        console.error('Failed to ensure invoice for confirmed booking', invoiceError);
+      }
     }
 
     res.status(201).json(createdBooking);
@@ -3327,10 +3420,13 @@ app.patch('/api/staff/bookings/:id/status', async (req, res, next) => {
       return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
     }
 
+    const statusUpdatedAt = new Date();
     await db.collection('bookings').updateOne(
       { _id: bookingDoc._id },
-      { $set: { status: nextStatus, updatedAt: new Date() } },
+      { $set: { status: nextStatus, updatedAt: statusUpdatedAt } },
     );
+
+    const updatedBooking = { ...bookingDoc, status: nextStatus, updatedAt: statusUpdatedAt };
 
     await recordAudit(req, {
       actorId: staffUser._id,
@@ -3342,6 +3438,14 @@ app.patch('/api/staff/bookings/:id/status', async (req, res, next) => {
         nextStatus,
       }),
     });
+
+    if (nextStatus === 'confirmed') {
+      try {
+        await ensureBookingInvoice(updatedBooking);
+      } catch (invoiceError) {
+        console.error('Failed to ensure invoice for booking', bookingDoc._id, invoiceError);
+      }
+    }
 
     const decorated = await db.collection('bookings').aggregate([
       { $match: { _id: bookingDoc._id } },

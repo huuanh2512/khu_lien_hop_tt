@@ -81,6 +81,26 @@ class MatchRequest {
       return null;
     }
 
+    String? parseName(dynamic direct, [dynamic fallback]) {
+      String? extract(dynamic source) {
+        if (source == null) return null;
+        if (source is String) {
+          final trimmed = source.trim();
+          return trimmed.isEmpty ? null : trimmed;
+        }
+        if (source is Map<String, dynamic>) {
+          final nestedName = source['name'];
+          if (nestedName is String) {
+            final trimmed = nestedName.trim();
+            if (trimmed.isNotEmpty) return trimmed;
+          }
+        }
+        return null;
+      }
+
+      return extract(direct) ?? extract(fallback);
+    }
+
     final participantsRaw = json['participants'];
     final participants = <String>[];
     if (participantsRaw is List) {
@@ -162,14 +182,18 @@ class MatchRequest {
     final participantCount =
         parseCount(json['participantCount']) ?? participantList.length;
 
+    final sportSource = json['sportId'] ?? json['sport'];
+    final facilitySource = json['facilityId'] ?? json['facility'];
+    final courtSource = json['courtId'] ?? json['court'];
+
     return MatchRequest(
       id: JsonUtils.parseId(json['id'] ?? json['_id']),
-      sportId: JsonUtils.parseId(json['sportId']),
-      sportName: json['sportName']?.toString(),
-      facilityId: JsonUtils.parseIdOrNull(json['facilityId']),
-      facilityName: json['facilityName']?.toString(),
-      courtId: JsonUtils.parseIdOrNull(json['courtId']),
-      courtName: json['courtName']?.toString(),
+      sportId: JsonUtils.parseId(sportSource),
+      sportName: parseName(json['sportName'], json['sport']),
+      facilityId: JsonUtils.parseIdOrNull(facilitySource),
+      facilityName: parseName(json['facilityName'], json['facility']),
+      courtId: JsonUtils.parseIdOrNull(courtSource),
+      courtName: parseName(json['courtName'], json['court']),
       desiredStart: parseDate(json['desiredStart']),
       desiredEnd: parseDate(json['desiredEnd']),
       skillMin: parseSkill(

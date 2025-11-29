@@ -2451,8 +2451,15 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     final statusLower = request.status.toLowerCase();
     final isOpen = statusLower == 'open';
     final isCancelled = statusLower == 'cancelled';
-    final facilityLabel = request.facilityName ?? request.facilityId;
-    final courtLabel = request.courtName ?? request.courtId;
+    final sportLabel = (request.sportName?.trim().isNotEmpty ?? false)
+      ? request.sportName!.trim()
+      : 'Môn thể thao (chưa xác định)';
+    final facilityLabel = (request.facilityName?.trim().isNotEmpty ?? false)
+      ? request.facilityName!.trim()
+      : '(chưa rõ)';
+    final courtLabel = (request.courtName?.trim().isNotEmpty ?? false)
+      ? request.courtName!.trim()
+      : '(chưa rõ)';
     final hasBookingWindow =
         request.bookingStart != null && request.bookingEnd != null;
 
@@ -2618,13 +2625,10 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     final participantText = request.participantLimit != null
         ? '${request.participantCount}/${request.participantLimit} người'
         : '${request.participantCount} người';
-    final facilityParts = <String>[];
-    if (facilityLabel != null) {
-      facilityParts.add('Cơ sở: $facilityLabel');
-    }
-    if (courtLabel != null) {
-      facilityParts.add('Sân: $courtLabel');
-    }
+    final facilityParts = <String>[
+      'Cơ sở: $facilityLabel',
+      'Sân: $courtLabel',
+    ];
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -2663,7 +2667,7 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        request.sportName ?? 'Môn thể thao chưa rõ',
+                        sportLabel,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -2747,31 +2751,29 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
                 ],
               ),
             ),
-            if (facilityParts.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  border: Border.all(color: Colors.black, width: 2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.place_outlined, size: 18, color: Colors.black),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        facilityParts.join(' • '),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                border: Border.all(color: Colors.black, width: 2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.place_outlined, size: 18, color: Colors.black),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      facilityParts.join(' • '),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
             if (request.bookingStatus != null) ...[
               const SizedBox(height: 4),
               Text('Trạng thái đặt sân: ${request.bookingStatus}'),
