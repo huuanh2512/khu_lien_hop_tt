@@ -3299,6 +3299,74 @@ app.get('/api/staff/bookings', requireStaff, async (req, res, next) => {
   }
 });
 
+app.patch('/api/staff/bookings/:bookingId/status', requireStaff, async (req, res, next) => {
+  try {
+    const staffUser = await fetchStaffUser(req);
+    if (!staffUser) return res.status(401).json({ error: 'Unauthenticated' });
+
+    const facilityId = coerceObjectId(staffUser.facilityId);
+    if (!facilityId) {
+      return res.status(403).json({ error: 'Staff user is not assigned to any facility' });
+    }
+
+    const bookingCandidates = buildIdCandidates(req.params.bookingId);
+    if (!bookingCandidates.length) {
+      return res.status(404).json({ error: 'Lượt đặt sân không tồn tại' });
+    }
+
+    const bookingDoc = await db.collection('bookings').findOne({
+      _id: { $in: bookingCandidates },
+      facilityId,
+      deletedAt: { $exists: false },
+    });
+    if (!bookingDoc) {
+      return res.status(404).json({ error: 'Lượt đặt sân không tồn tại' });
+    }
+
+    const nextStatusRaw = typeof req.body?.status === 'string' ? req.body.status.trim() : '';
+    const nextStatus = nextStatusRaw.toLowerCase();
+    if (!nextStatus.length) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    }
+
+    await db.collection('bookings').updateOne(
+      { _id: bookingDoc._id },
+      { $set: { status: nextStatus, updatedAt: new Date() } },
+    );
+
+    await recordAudit(req, {
+      actorId: staffUser._id,
+      action: 'staff.booking-status-update',
+      resource: 'booking',
+      resourceId: bookingDoc._id,
+      changes: sanitizeAuditData({
+        previousStatus: bookingDoc.status ?? null,
+        nextStatus,
+      }),
+    });
+
+    const decorated = await db.collection('bookings').aggregate([
+      { $match: { _id: bookingDoc._id } },
+      { $lookup: { from: 'users', localField: 'customerId', foreignField: '_id', as: 'customer' } },
+      { $unwind: { path: '$customer', preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: 'courts', localField: 'courtId', foreignField: '_id', as: 'court' } },
+      { $unwind: { path: '$court', preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: 'sports', localField: 'sportId', foreignField: '_id', as: 'sport' } },
+      { $unwind: { path: '$sport', preserveNullAndEmptyArrays: true } },
+      { $limit: 1 },
+    ]).toArray();
+
+    const shaped = decorated.map((doc) => shapeStaffBooking(doc)).filter(Boolean)[0] ?? null;
+    if (!shaped) {
+      return res.status(404).json({ error: 'Lượt đặt sân không tồn tại' });
+    }
+
+    res.json(shaped);
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/staff/invoices', requireStaff, async (req, res, next) => {
   try {
     const staffUser = await fetchStaffUser(req);
