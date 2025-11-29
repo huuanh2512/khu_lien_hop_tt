@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "813700386210",
+    "project_id": "khulienhoptt",
+    "storage_bucket": "khulienhoptt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:813700386210:android:5221d5331ba0a4dff4f6fb",
+        "android_client_info": {
+          "package_name": "com.example.khu_lien_hop_tt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXR6nEw9NwLbIt2P1_aAyxwGrmI2U4viU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
