@@ -78,6 +78,15 @@ class _LoginPageState extends State<LoginPage> {
         throw Exception('Không tìm thấy thông tin người dùng Firebase');
       }
 
+      try {
+        await firebaseUser.reload();
+      } catch (_) {
+        // Bỏ qua lỗi reload, dùng trạng thái hiện tại.
+      }
+      final refreshedUser = FirebaseAuth.instance.currentUser;
+      final bool emailVerified =
+          refreshedUser?.emailVerified ?? firebaseUser.emailVerified;
+
       final token = await auth.getIdToken();
       if (token == null || token.isEmpty) {
         throw Exception('Không lấy được Firebase ID token');
@@ -86,11 +95,14 @@ class _LoginPageState extends State<LoginPage> {
       ApiService.setAuthToken(token);
       final appUser = await _api.fetchCurrentUser();
 
-      await auth.applyFirebaseUserSession(token: token, user: appUser);
+      await auth.applyFirebaseUserSession(
+        token: token,
+        user: appUser,
+        isCustomerVerified: emailVerified,
+      );
       await auth.persistSession();
 
       if (!mounted) return;
-      final bool emailVerified = firebaseUser.emailVerified;
       Widget destination;
       if (appUser.role == 'admin') {
         destination = const AdminDashboardPage();

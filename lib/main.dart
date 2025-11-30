@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'services/auth_service.dart';
 import 'screens/auth/login_page.dart';
 import 'screens/auth/register_page.dart';
+import 'screens/verify_email_screen.dart';
 import 'screens/sports_page.dart';
 import 'screens/facilities_page.dart';
 import 'admin/courts_admin_page.dart';
@@ -37,6 +38,8 @@ class MyApp extends StatelessWidget {
         Widget home;
         if (!auth.isLoggedIn || user == null) {
           home = const LoginPage();
+        } else if (user.role == 'customer' && !auth.isCustomerEmailVerified) {
+          home = const VerifyEmailScreen();
         } else {
           switch (user.role) {
             case 'admin':

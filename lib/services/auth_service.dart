@@ -19,6 +19,7 @@ class AuthService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   String? _token;
   AppUser? _user;
+  bool _customerEmailVerified = true;
 
   static const String tokenStorageKey = 'auth_token';
   static const String userStorageKey = 'auth_user';
@@ -27,6 +28,7 @@ class AuthService extends ChangeNotifier {
   String? get token => _token;
   AppUser? get currentUser => _user;
   bool get isLoggedIn => _token != null && _user != null;
+  bool get isCustomerEmailVerified => _customerEmailVerified;
 
   /// Đăng ký Firebase email/password và gửi email xác thực nếu cần
   Future<User?> signUpWithEmail(String email, String password) async {
@@ -72,7 +74,13 @@ class AuthService extends ChangeNotifier {
     final user = _firebaseAuth.currentUser;
     if (user == null) return false;
     await user.reload();
-    return _firebaseAuth.currentUser?.emailVerified ?? false;
+    final verified = _firebaseAuth.currentUser?.emailVerified ?? false;
+    if (verified && _user?.role == 'customer') {
+      _customerEmailVerified = true;
+      notifyListeners();
+      await persistSession();
+    }
+    return verified;
   }
 
   /// Lấy Firebase ID token để gửi về backend
@@ -90,9 +98,11 @@ class AuthService extends ChangeNotifier {
   Future<void> applyFirebaseUserSession({
     required String token,
     required AppUser user,
+    bool isCustomerVerified = true,
   }) async {
     _token = token;
     _user = user;
+    _customerEmailVerified = user.role == 'customer' ? isCustomerVerified : true;
     ApiService.setAuthToken(token);
     notifyListeners();
   }
@@ -101,6 +111,10 @@ class AuthService extends ChangeNotifier {
     final token = _token;
     final user = _user;
     if (token == null || token.isEmpty || user == null) {
+      await _clearStoredSession();
+      return;
+    }
+    if (!await _shouldPersistSessionForUser(user)) {
       await _clearStoredSession();
       return;
     }
@@ -122,6 +136,7 @@ class AuthService extends ChangeNotifier {
     String? gender,
     DateTime? dateOfBirth,
     String? mainSportId,
+    bool isCustomerVerified = true,
   }) async {
     final response = await _api.register(
       email: email,
@@ -131,7 +146,7 @@ class AuthService extends ChangeNotifier {
       dateOfBirth: dateOfBirth,
       mainSportId: mainSportId,
     );
-    _applySession(response);
+    _applySession(response, isCustomerVerified: isCustomerVerified);
   }
 
   Future<void> logout() async {
@@ -140,7 +155,10 @@ class AuthService extends ChangeNotifier {
     await _clearStoredSession();
   }
 
-  void _applySession(Map<String, dynamic> payload) {
+  void _applySession(
+    Map<String, dynamic> payload, {
+    bool isCustomerVerified = true,
+  }) {
     final token = payload['token'] as String?;
     final rawUser = payload['user'] as Map<String, dynamic>?;
     if (token == null || token.isEmpty || rawUser == null) {
@@ -160,6 +178,8 @@ class AuthService extends ChangeNotifier {
 
     _token = token;
     _user = user;
+    _customerEmailVerified =
+      user.role == 'customer' ? isCustomerVerified : true;
     ApiService.setAuthToken(token);
     notifyListeners();
   }
@@ -189,8 +209,19 @@ class AuthService extends ChangeNotifier {
         await _clearStoredSession(prefs);
         return;
       }
+      if (!await _shouldPersistSessionForUser(user)) {
+        _resetSession();
+        await _clearStoredSession(prefs);
+        return;
+      }
       _token = storedToken;
       _user = user;
+      if (user.role == 'customer') {
+        _customerEmailVerified =
+            _firebaseAuth.currentUser?.emailVerified ?? false;
+      } else {
+        _customerEmailVerified = true;
+      }
       ApiService.setAuthToken(storedToken);
       notifyListeners();
     } catch (_) {
@@ -206,9 +237,30 @@ class AuthService extends ChangeNotifier {
     await storage.remove(roleStorageKey);
   }
 
+  Future<bool> _shouldPersistSessionForUser(AppUser user) async {
+    if (user.role != 'customer') {
+      _customerEmailVerified = true;
+      return true;
+    }
+    final firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser == null) {
+      _customerEmailVerified = false;
+      return false;
+    }
+    try {
+      await firebaseUser.reload();
+    } catch (_) {
+      // Ignore reload issues and trust the current flag.
+    }
+    final verified = firebaseUser.emailVerified;
+    _customerEmailVerified = verified;
+    return verified;
+  }
+
   void _resetSession() {
     _token = null;
     _user = null;
+    _customerEmailVerified = true;
     ApiService.clearAuthToken();
     notifyListeners();
   }

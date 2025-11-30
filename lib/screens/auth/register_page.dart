@@ -143,6 +143,7 @@ class _RegisterPageState extends State<RegisterPage> {
         gender: _selectedGender,
         dateOfBirth: _selectedDob,
         mainSportId: _selectedMainSportId,
+        isCustomerVerified: false,
       );
       await _auth.persistSession();
 
