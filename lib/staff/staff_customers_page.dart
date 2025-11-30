@@ -6,6 +6,7 @@ import 'package:khu_lien_hop_tt/services/api_service.dart';
 import 'package:khu_lien_hop_tt/widgets/sports_gradient_background.dart';
 import 'package:khu_lien_hop_tt/widgets/success_dialog.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
+import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 
 class StaffCustomersPage extends StatefulWidget {
   const StaffCustomersPage({super.key, this.embedded = false});
@@ -121,7 +122,12 @@ class _StaffCustomersPageState extends State<StaffCustomersPage> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: NeoLoadingCard(
+          label: 'Đang tải khách hàng...',
+          width: 260,
+        ),
+      );
     }
     if (_error != null) {
       return _buildErrorView(_error!);
@@ -749,11 +755,7 @@ class _SendCustomerMessageSheetState extends State<_SendCustomerMessageSheet> {
                     buttonColor: Theme.of(context).colorScheme.primary,
                     shadowColor: Colors.black.withValues(alpha:0.35),
                     child: _submitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const NeoLoadingDot(size: 18, fillColor: Colors.white)
                         : const Text(
                             'Gửi',
                             style: TextStyle(

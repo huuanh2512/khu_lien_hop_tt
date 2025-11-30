@@ -12,6 +12,7 @@ import 'package:khu_lien_hop_tt/utils/api_error_utils.dart';
 import 'package:khu_lien_hop_tt/widgets/error_state_widget.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_text.dart';
+import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 import 'package:khu_lien_hop_tt/widgets/sports_gradient_background.dart';
 import 'package:khu_lien_hop_tt/widgets/success_dialog.dart';
 
@@ -434,7 +435,13 @@ class _StaffBookingsPageState extends State<StaffBookingsPage> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(
+        child: NeoLoadingCard(
+          label: 'Đang tạo đặt sân...',
+          width: 220,
+          height: 180,
+        ),
+      ),
     );
     try {
       final booking = await _api.staffCreateBooking(
@@ -1958,11 +1965,7 @@ class _HeaderIconButton extends StatelessWidget {
         child: IconButton(
           onPressed: onPressed,
           icon: showLoader
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const NeoLoadingDot(size: 18, fillColor: Colors.white)
               : Icon(icon),
         ),
       ),

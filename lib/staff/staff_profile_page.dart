@@ -3,6 +3,7 @@ import 'package:neubrutalism_ui/neubrutalism_ui.dart';
 
 import '../models/staff_booking.dart';
 import '../widgets/neu_button.dart';
+import '../widgets/neo_loading.dart';
 import '../models/staff_facility.dart';
 import '../models/staff_invoice.dart';
 import '../models/staff_notification.dart';
@@ -268,9 +269,14 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
     final slivers = <Widget>[
       _buildHeader(mediaPadding),
       if (_loading)
-        const SliverFillRemaining(
+        SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: CircularProgressIndicator()),
+          child: Center(
+            child: NeoLoadingCard(
+              label: 'Đang tải hồ sơ...',
+              width: 260,
+            ),
+          ),
         )
       else if (_error != null)
         SliverFillRemaining(
@@ -954,13 +960,9 @@ class _EditProfileForm extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (saving)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                const NeoLoadingDot(
+                  size: 18,
+                  fillColor: Colors.white,
                 )
               else
                 const Icon(Icons.save_outlined, color: Colors.white),
@@ -1114,13 +1116,9 @@ class _PasswordFormState extends State<_PasswordForm> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (widget.saving)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
+                const NeoLoadingDot(
+                  size: 18,
+                  fillColor: Colors.white,
                 )
               else
                 const Icon(Icons.vpn_key_outlined, color: Colors.white),

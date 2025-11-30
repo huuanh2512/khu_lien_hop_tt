@@ -5,6 +5,7 @@ import 'package:khu_lien_hop_tt/models/staff_notification.dart';
 import 'package:khu_lien_hop_tt/services/api_service.dart';
 import 'package:khu_lien_hop_tt/staff/staff_bookings_page.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
+import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 
 enum _NotificationFilter { all, unread, read, important }
 
@@ -474,11 +475,7 @@ class _StaffNotificationsPageState extends State<StaffNotificationsPage>
                     IconButton(
                       tooltip: 'Đánh dấu tất cả là đã đọc',
                       icon: _markingAll
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const NeoLoadingDot(size: 18, fillColor: Colors.white)
                           : const Icon(Icons.done_all_rounded),
                       onPressed:
                           _markingAll ||
@@ -604,7 +601,12 @@ class _StaffNotificationsPageState extends State<StaffNotificationsPage>
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: NeoLoadingCard(
+          label: 'Đang tải thông báo...',
+          width: 260,
+        ),
+      );
     }
     if (_error != null) {
       final theme = Theme.of(context);
@@ -1007,13 +1009,7 @@ class _NotificationCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (marking)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
+                              const NeoLoadingDot(size: 16, fillColor: Colors.white)
                             else
                               const Icon(Icons.done_outlined, size: 16),
                             const SizedBox(width: 6),

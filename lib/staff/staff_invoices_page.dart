@@ -5,6 +5,7 @@ import 'package:khu_lien_hop_tt/models/staff_invoice.dart';
 import 'package:khu_lien_hop_tt/services/api_service.dart';
 import 'package:khu_lien_hop_tt/widgets/sports_gradient_background.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
+import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 import 'package:khu_lien_hop_tt/widgets/success_dialog.dart';
 
 const Map<String, String> _invoiceStatusLabels = {
@@ -1410,13 +1411,9 @@ class _InvoiceDetailSheet extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (isBusy)
-                            const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                            const NeoLoadingDot(
+                              size: 18,
+                              fillColor: Colors.white,
                             )
                           else
                             const Icon(

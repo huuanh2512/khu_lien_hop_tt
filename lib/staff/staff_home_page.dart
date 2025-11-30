@@ -17,6 +17,7 @@ import 'package:khu_lien_hop_tt/staff/staff_profile_page.dart';
 import 'package:khu_lien_hop_tt/staff/staff_notifications_page.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_text.dart';
+import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 import 'package:khu_lien_hop_tt/widgets/sports_gradient_background.dart';
 import 'package:khu_lien_hop_tt/widgets/success_dialog.dart';
 
@@ -293,7 +294,13 @@ class _StaffHomePageState extends State<StaffHomePage> {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
+      builder: (dialogContext) => const Center(
+        child: NeoLoadingCard(
+          label: 'Đang xử lý...',
+          width: 220,
+          height: 180,
+        ),
+      ),
     );
     try {
       var booking = await _api.staffCreateBooking(
@@ -488,7 +495,12 @@ class _StaffHomePageState extends State<StaffHomePage> {
 
   Widget _buildOverviewTab(String greetingName) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: NeoLoadingCard(
+          label: 'Đang tải dữ liệu...',
+          width: 260,
+        ),
+      );
     }
     if (_error != null) {
       return _buildErrorView(_error!);
@@ -2486,10 +2498,9 @@ class _StaffHomePageState extends State<StaffHomePage> {
                               borderRadius: BorderRadius.circular(12),
                               onPressed: saving ? null : submit,
                               child: saving
-                                  ? const SizedBox(
-                                      height: 16,
-                                      width: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  ? const NeoLoadingDot(
+                                      size: 16,
+                                      fillColor: Colors.white,
                                     )
                                   : const Text('Lưu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
@@ -2802,10 +2813,9 @@ class _StaffHomePageState extends State<StaffHomePage> {
                               borderRadius: BorderRadius.circular(12),
                               onPressed: saving ? null : submit,
                               child: saving
-                                  ? const SizedBox(
-                                      height: 16,
-                                      width: 16,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  ? const NeoLoadingDot(
+                                      size: 16,
+                                      fillColor: Colors.white,
                                     )
                                   : const Text('Lưu', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
@@ -2973,11 +2983,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
                 FilledButton(
                   onPressed: saving ? null : submit,
                   child: saving
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const NeoLoadingDot(size: 16, fillColor: Colors.white)
                       : const Text('Lưu thay đổi'),
                 ),
               ],
@@ -3646,7 +3652,12 @@ class _QuickBookingSheetState extends State<_QuickBookingSheet> {
 
   Widget _buildExistingCustomers(ThemeData theme) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: NeoLoadingCard(
+          label: 'Đang tải khách hàng...',
+          width: 240,
+        ),
+      );
     }
     if (_error != null) {
       return Center(
