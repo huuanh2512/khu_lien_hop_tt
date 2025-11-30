@@ -1321,11 +1321,10 @@ class _BookingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget shimmerBox({double height = 16, double width = double.infinity}) {
+    Widget shimmerBox({double height = 14, double width = double.infinity}) {
       return Container(
         height: height,
         width: width,
-        margin: const EdgeInsets.symmetric(vertical: 6),
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(12),
@@ -1334,7 +1333,6 @@ class _BookingSkeleton extends StatelessWidget {
     }
 
     return Container(
-      height: 180,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -1346,17 +1344,21 @@ class _BookingSkeleton extends StatelessWidget {
         children: [
           Row(
             children: [
-              shimmerBox(height: 28, width: 90),
+              shimmerBox(height: 22, width: 90),
               const Spacer(),
-              shimmerBox(height: 28, width: 60),
+              shimmerBox(height: 22, width: 60),
             ],
           ),
-          shimmerBox(height: 22, width: 150),
-          shimmerBox(width: 120),
-          const Divider(height: 24),
-          shimmerBox(width: 180),
-          shimmerBox(width: 140),
+          const SizedBox(height: 8),
           shimmerBox(width: 160),
+          const SizedBox(height: 6),
+          shimmerBox(width: 120),
+          const SizedBox(height: 12),
+          const Divider(height: 24),
+          const SizedBox(height: 8),
+          shimmerBox(width: 200),
+          const SizedBox(height: 6),
+          shimmerBox(width: 150),
         ],
       ),
     );
