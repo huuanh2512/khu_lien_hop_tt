@@ -2957,7 +2957,7 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
           child: buildOption(
             value: 'solo',
             title: 'Ghép người lẻ',
-            description: 'Hệ thống tìm người chơi phù hợp và phân về hai đội.',
+            description: '',
             icon: Icons.person_add_alt,
           ),
         ),
@@ -2966,7 +2966,7 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
           child: buildOption(
             value: 'team',
             title: 'Đội vs đội',
-            description: 'Tạo lời mời cho cả đội và tìm đối thủ ngang sức.',
+            description: '',
             icon: Icons.sports_martial_arts,
           ),
         ),
