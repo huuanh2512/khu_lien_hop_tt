@@ -7,10 +7,12 @@ class SportsGradientBackground extends StatelessWidget {
     super.key,
     required this.child,
     this.variant = SportsBackgroundVariant.primary,
+    this.hideTopLeftAccent = false,
   });
 
   final Widget child;
   final SportsBackgroundVariant variant;
+  final bool hideTopLeftAccent;
 
   static const Color _primaryBase = Color(0xFFFFF3B0);
   static const Color _primaryAccent = Color(0xFFFFC8DD);
@@ -43,16 +45,17 @@ class SportsGradientBackground extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Positioned(
-            top: -32,
-            left: -24,
-            child: _BrutalistShape(
-              color: accentColor.withValues(alpha: 0.9),
-              width: 180,
-              height: 140,
-              borderRadius: 28,
+          if (!hideTopLeftAccent)
+            Positioned(
+              top: -32,
+              left: -24,
+              child: _BrutalistShape(
+                color: accentColor.withValues(alpha: 0.9),
+                width: 180,
+                height: 140,
+                borderRadius: 28,
+              ),
             ),
-          ),
           Positioned(
             bottom: -28,
             right: -16,
