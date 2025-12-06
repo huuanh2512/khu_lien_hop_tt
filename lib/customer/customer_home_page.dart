@@ -771,10 +771,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     required Widget child,
     ApiErrorDetails? error,
     VoidCallback? onRetry,
+    String loadingLabel = 'Đang tải...',
   }) {
     return AsyncSection(
       isLoading: isLoading,
       error: error,
+      loadingLabel: loadingLabel,
       onRetry: onRetry ?? () {
         _refreshOverview();
       },
@@ -966,6 +968,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               _buildAsyncSection(
                 isLoading: _loadingOverview,
                 error: _upcomingError,
+                loadingLabel: 'Đang tải lịch đặt sân...',
                 child: content,
               ),
             ],
@@ -1184,6 +1187,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               _buildAsyncSection(
                 isLoading: _loadingOverview,
                 error: _notificationsError,
+                loadingLabel: 'Đang tải thông báo...',
                 child: content,
               ),
             ],
@@ -1323,6 +1327,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               _buildAsyncSection(
                 isLoading: _loadingOverview,
                 error: _invoiceError,
+                loadingLabel: 'Đang tải hoá đơn...',
                 child: content,
               ),
             ],
@@ -1523,6 +1528,7 @@ class AsyncSection extends StatelessWidget {
     this.error,
     this.onLogin,
     this.onVerifyEmail,
+    this.loadingLabel = 'Đang tải...',
   });
 
   final bool isLoading;
@@ -1531,14 +1537,18 @@ class AsyncSection extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback? onLogin;
   final VoidCallback? onVerifyEmail;
+  final String loadingLabel;
 
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Center(
-          child: NeoLoadingDot(size: 24, fillColor: Colors.white),
+          child: NeoLoadingCard(
+            label: loadingLabel,
+            width: 240,
+          ),
         ),
       );
     }

@@ -282,6 +282,12 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     return null;
   }
 
+  bool _isPickleballSportById(String? id) {
+    final sport = _getSportById(id);
+    if (sport == null) return false;
+    return _isPickleballSport(sport);
+  }
+
   int _defaultLimitForSport(String? sportId) {
     final sport = _getSportById(sportId);
     final maxForSport = _maxParticipantsForSport(sportId);
@@ -295,6 +301,12 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
   int _defaultTeamSizeForSport(String? sportId) {
     final sport = _getSportById(sportId);
     final size = sport?.teamSize ?? 0;
+    if (sport != null && _isPickleballSport(sport)) {
+      if (size <= 0) return 2;
+      if (size < 1) return 1;
+      if (size > 2) return 2;
+      return size;
+    }
     if (size <= 0) return 1;
     if (size > 20) return 20;
     return size;
@@ -312,6 +324,9 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
 
   int _maxTeamSizeForSport(String? sportId) {
     final sport = _getSportById(sportId);
+    if (sport != null && _isPickleballSport(sport)) {
+      return 2;
+    }
     var size = sport?.teamSize ?? 0;
     if (size <= 0) {
       size = (_maxParticipantsForSport(sportId) / 2).floor();
@@ -321,23 +336,53 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     return size;
   }
 
+  int _minTeamSizeForMode({
+    required bool isTeamMode,
+    required String? sportId,
+  }) {
+    if (!isTeamMode) return 1;
+    return _isPickleballSportById(sportId) ? 1 : 2;
+  }
+
+  int _maxTeamSizeForMode({
+    required bool isTeamMode,
+    required String? sportId,
+  }) {
+    final rawMax = _maxTeamSizeForSport(sportId);
+    if (!isTeamMode) return rawMax;
+    if (_isPickleballSportById(sportId)) return rawMax;
+    return rawMax < 2 ? 2 : rawMax;
+  }
+
   List<int> _teamSizeOptionsForCurrentSport() {
-    final maxSize = _maxTeamSizeForSport(_selectedSport);
-    final capped = maxSize < 1 ? 1 : maxSize;
-    return List<int>.generate(capped, (index) => index + 1);
+    final minSize = _minTeamSizeForMode(
+      isTeamMode: _isTeamMode,
+      sportId: _selectedSport,
+    );
+    final maxSize = _maxTeamSizeForMode(
+      isTeamMode: _isTeamMode,
+      sportId: _selectedSport,
+    );
+    final effectiveMax = maxSize < minSize ? minSize : maxSize;
+    final count = (effectiveMax - minSize) + 1;
+    return List<int>.generate(count, (index) => minSize + index);
   }
 
   List<int> _teamModeSizeOptions() {
+    if (_isPickleballSportById(_selectedSport)) {
+      return const [1, 2];
+    }
+    final minSize = _minTeamSizeForMode(isTeamMode: true, sportId: _selectedSport);
     final variants = _variantOptionsForCurrentSport()
         .map((variant) => variant.teamSizePerSide)
-        .where((value) => value >= 2)
+        .where((value) => value >= minSize)
         .toSet()
         .toList()
       ..sort();
     if (variants.isNotEmpty) return variants;
     final defaultSize = _defaultTeamSizeForSport(_selectedSport);
-    final fallback = <int>{defaultSize, 2, 3, 5, 7};
-    final normalized = fallback.where((value) => value >= 2 && value <= 12).toList()
+    final fallback = <int>{defaultSize, minSize, 3, 5, 7};
+    final normalized = fallback.where((value) => value >= minSize && value <= 12).toList()
       ..sort();
     return normalized;
   }
@@ -351,11 +396,18 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     if (_matchMode == mode) return;
     setState(() {
       _matchMode = mode;
-      if (_isTeamMode && _teamSizePerSide < 2) {
-        _teamSizePerSide = _defaultTeamSizeForSport(_selectedSport);
-        if (_teamSizePerSide < 2) {
-          _teamSizePerSide = 2;
+      if (_isTeamMode) {
+        final minTeamSize = _minTeamSizeForMode(isTeamMode: true, sportId: _selectedSport);
+        final maxTeamSize = _maxTeamSizeForMode(isTeamMode: true, sportId: _selectedSport);
+        final defaultSize = _defaultTeamSizeForSport(_selectedSport);
+        var nextSize = _teamSizePerSide;
+        if (nextSize < minTeamSize) {
+          nextSize = defaultSize < minTeamSize ? minTeamSize : defaultSize;
         }
+        if (nextSize > maxTeamSize) {
+          nextSize = maxTeamSize;
+        }
+        _teamSizePerSide = nextSize;
       }
       if (!_isTeamMode) {
         _teamNameController.clear();
@@ -438,6 +490,13 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
     return _matchesSportKeywords(
       sport,
       ['volleyball', 'bóng chuyền', 'bong chuyen'],
+    );
+  }
+
+  bool _isPickleballSport(Sport sport) {
+    return _matchesSportKeywords(
+      sport,
+      ['pickleball', 'pickle ball'],
     );
   }
 
@@ -551,12 +610,24 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
       if (previousSport != nextSport || nextTeamSize < 1 || nextTeamSize > 20) {
         nextTeamSize = defaultTeamSize;
       }
-      final maxTeamSizeForSport = _maxTeamSizeForSport(nextSport);
+      final maxTeamSizeForSport = _maxTeamSizeForMode(
+        isTeamMode: _matchMode == 'team',
+        sportId: nextSport,
+      );
       if (nextTeamSize > maxTeamSizeForSport) {
         nextTeamSize = maxTeamSizeForSport;
       }
       if (nextTeamSize < 1) {
         nextTeamSize = 1;
+      }
+      if (_matchMode == 'team') {
+        final minTeamSize = _minTeamSizeForMode(
+          isTeamMode: true,
+          sportId: nextSport,
+        );
+        if (nextTeamSize < minTeamSize) {
+          nextTeamSize = minTeamSize;
+        }
       }
       if (nextLimit < nextTeamSize * 2) {
         nextLimit = nextTeamSize * 2;
@@ -915,7 +986,15 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
 
     final bool isTeamMode = _isTeamMode;
     final teamSize = _teamSizePerSide;
-    if (teamSize < (isTeamMode ? 2 : 1)) {
+    final minTeamSize = _minTeamSizeForMode(
+      isTeamMode: isTeamMode,
+      sportId: sportId,
+    );
+    final maxTeamSize = _maxTeamSizeForMode(
+      isTeamMode: isTeamMode,
+      sportId: sportId,
+    );
+    if (teamSize < minTeamSize || teamSize > maxTeamSize) {
       await _showSnack('Vui lòng chọn số người phù hợp cho mỗi đội.', isError: true);
       return;
     }
@@ -1965,10 +2044,25 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
 
     if (selected != null && mounted) {
       setState(() {
-        _teamSizePerSide = selected;
+        var nextSize = selected;
+        final minTeamSize = _minTeamSizeForMode(
+          isTeamMode: _isTeamMode,
+          sportId: _selectedSport,
+        );
+        if (nextSize < minTeamSize) {
+          nextSize = minTeamSize;
+        }
+        final maxTeamSize = _maxTeamSizeForMode(
+          isTeamMode: _isTeamMode,
+          sportId: _selectedSport,
+        );
+        if (nextSize > maxTeamSize) {
+          nextSize = maxTeamSize;
+        }
+        _teamSizePerSide = nextSize;
         _selectedVariantId = null;
-        if (_participantLimit < selected * 2) {
-          _participantLimit = selected * 2;
+        if (_participantLimit < nextSize * 2) {
+          _participantLimit = nextSize * 2;
         }
         final maxForSport = _maxParticipantsForSport(_selectedSport);
         if (_participantLimit > maxForSport) {
@@ -2066,7 +2160,8 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
 
   Widget _buildCreateCard(ThemeData theme) {
     final isLoggedIn = AuthService.instance.isLoggedIn;
-    final variantOptions = _variantOptionsForCurrentSport();
+    final variantOptions =
+        _isTeamMode ? const <_TeamVariantOption>[] : _variantOptionsForCurrentSport();
     final disableParticipantLimit = _isTeamMode;
     return NeuContainer(
       color: const Color(0xFFFFFAF0),
@@ -2924,18 +3019,26 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
                   children: [
                     Text(
                       title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: textColor,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: textColor.withValues(alpha: 0.8),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: textColor.withValues(alpha: 0.8),
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -2951,26 +3054,48 @@ class _MatchRequestsPageState extends State<MatchRequestsPage> {
       );
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: buildOption(
-            value: 'solo',
-            title: 'Ghép người lẻ',
-            description: '',
-            icon: Icons.person_add_alt,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: buildOption(
-            value: 'team',
-            title: 'Đội vs đội',
-            description: '',
-            icon: Icons.sports_martial_arts,
-          ),
-        ),
-      ],
+    Widget buildSoloOption() => buildOption(
+          value: 'solo',
+          title: 'Ghép người lẻ',
+          description: 'Tự động xếp hai đội từ người lẻ.',
+          icon: Icons.person_add_alt,
+        );
+
+    Widget buildTeamOption() => buildOption(
+          value: 'team',
+          title: 'Đội vs đội',
+          description: 'Tạo lời mời cho cả đội.',
+          icon: Icons.sports_martial_arts,
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 360;
+        if (isCompact) {
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              SizedBox(
+                width: constraints.maxWidth,
+                child: buildSoloOption(),
+              ),
+              SizedBox(
+                width: constraints.maxWidth,
+                child: buildTeamOption(),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: buildSoloOption()),
+            const SizedBox(width: 12),
+            Expanded(child: buildTeamOption()),
+          ],
+        );
+      },
     );
   }
 
