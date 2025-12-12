@@ -26,9 +26,14 @@ const Map<String, String> _paymentFilters = {
 enum _DateQuickFilter { all, today, last7Days, thisMonth, custom }
 
 class StaffInvoicesPage extends StatefulWidget {
-  const StaffInvoicesPage({super.key, this.embedded = false});
+  const StaffInvoicesPage({
+    super.key,
+    this.embedded = false,
+    this.initialStatusFilter,
+  });
 
   final bool embedded;
+  final String? initialStatusFilter;
 
   @override
   State<StaffInvoicesPage> createState() => _StaffInvoicesPageState();
@@ -56,6 +61,9 @@ class _StaffInvoicesPageState extends State<StaffInvoicesPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialStatusFilter != null) {
+      _statusFilter = widget.initialStatusFilter!;
+    }
     _applyQuickFilter(_quickFilter, triggerLoad: false);
     _load();
   }

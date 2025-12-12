@@ -7,6 +7,7 @@ import 'package:khu_lien_hop_tt/widgets/error_state_widget.dart';
 import 'package:khu_lien_hop_tt/widgets/neo_loading.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_button.dart';
 import 'package:khu_lien_hop_tt/widgets/neu_text.dart';
+import 'staff_invoices_page.dart';
 
 /// Neo-brutalist "Báo cáo thống kê" page for staff.
 class StaffReportsPage extends StatefulWidget {
@@ -202,6 +203,15 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
   }
 
   Widget _buildLoading() {
+    if (widget.embedded) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: NeoLoadingCard(
+          label: 'Đang tải báo cáo...',
+          width: 260,
+        ),
+      );
+    }
     return const Center(
       child: NeoLoadingCard(
         label: 'Đang tải báo cáo...',
@@ -211,6 +221,15 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
   }
 
   Widget _buildError() {
+    if (widget.embedded) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: ErrorStateWidget(
+          onRetry: _load,
+          message: _error,
+        ),
+      );
+    }
     return Center(
       child: ErrorStateWidget(
         onRetry: _load,
@@ -220,27 +239,38 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
   }
 
   Widget _buildContent() {
+    final children = [
+      _buildHeader(),
+      const SizedBox(height: 20),
+      _buildKpiGrid(),
+      const SizedBox(height: 24),
+      _buildRevenueChart(),
+      const SizedBox(height: 24),
+      _buildPeakHoursChart(),
+      const SizedBox(height: 24),
+      _buildTopCourtsSection(),
+      const SizedBox(height: 24),
+      _buildRevenueBySportSection(),
+      const SizedBox(height: 24),
+      _buildCancellationsSection(),
+      const SizedBox(height: 32),
+    ];
+
+    // When embedded, use ListView to allow scrolling
+    if (widget.embedded) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: children,
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          _buildKpiGrid(),
-          const SizedBox(height: 24),
-          _buildRevenueChart(),
-          const SizedBox(height: 24),
-          _buildPeakHoursChart(),
-          const SizedBox(height: 24),
-          _buildTopCourtsSection(),
-          const SizedBox(height: 24),
-          _buildRevenueBySportSection(),
-          const SizedBox(height: 24),
-          _buildCancellationsSection(),
-          const SizedBox(height: 32),
-        ],
+        children: children,
       ),
     );
   }
@@ -398,6 +428,17 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
               label: 'Hoá đơn chưa TT',
               value: '$unpaidCount (${_formatCurrency(unpaidAmount)})',
               color: _pastelOrange,
+              onTap: unpaidCount > 0
+                  ? () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const StaffInvoicesPage(
+                            initialStatusFilter: 'unpaid',
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
             ),
           ],
         );
@@ -410,8 +451,9 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
     required String label,
     required String value,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return NeuContainer(
+    final card = NeuContainer(
       borderRadius: BorderRadius.circular(16),
       color: color,
       borderColor: Colors.black,
@@ -439,6 +481,8 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (onTap != null)
+                  const Icon(Icons.chevron_right, size: 18, color: Colors.black54),
               ],
             ),
             const SizedBox(height: 8),
@@ -458,6 +502,14 @@ class _StaffReportsPageState extends State<StaffReportsPage> {
         ),
       ),
     );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: card,
+      );
+    }
+    return card;
   }
 
   Widget _buildRevenueChart() {

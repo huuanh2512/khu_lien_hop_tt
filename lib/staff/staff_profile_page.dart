@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:neubrutalism_ui/neubrutalism_ui.dart';
 
-import '../models/staff_booking.dart';
 import '../widgets/neu_button.dart';
 import '../widgets/neo_loading.dart';
 import '../models/staff_facility.dart';
-import '../models/staff_invoice.dart';
-import '../models/staff_notification.dart';
 import '../models/staff_profile.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -30,9 +27,6 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
 
   StaffProfile? _profile;
   StaffFacilityData? _facilityData;
-  List<StaffBooking> _bookings = const [];
-  StaffInvoiceResponse? _invoiceResponse;
-  List<StaffNotification> _notifications = const [];
 
   bool _loading = true;
   String? _error;
@@ -81,24 +75,15 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
       final results = await Future.wait([
         _api.staffGetProfile(),
         _api.staffGetFacility(),
-        _api.staffGetBookings(limit: 80),
-        _api.staffGetInvoices(limit: 80),
-        _api.staffGetNotifications(limit: 40),
       ]);
 
       final profile = results[0] as StaffProfile;
       final facility = results[1] as StaffFacilityData;
-      final bookings = results[2] as List<StaffBooking>;
-      final invoices = results[3] as StaffInvoiceResponse;
-      final notifications = results[4] as List<StaffNotification>;
 
       if (!mounted) return;
       setState(() {
         _profile = profile;
         _facilityData = facility;
-        _bookings = bookings;
-        _invoiceResponse = invoices;
-        _notifications = notifications;
         _loading = false;
         _error = null;
       });
@@ -283,13 +268,8 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
           hasScrollBody: false,
           child: _ErrorState(message: _error!, onRetry: _loadData),
         )
-      else ...[
-        SliverPadding(
+      else ...[        SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          sliver: SliverToBoxAdapter(child: _buildQuickStatsCard(context)),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           sliver: SliverToBoxAdapter(child: _buildSettingsCard(context)),
         ),
       ],
@@ -545,97 +525,6 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
     );
   }
 
-  Widget _buildQuickStatsCard(BuildContext context) {
-    final theme = Theme.of(context);
-    final stats = _buildStats();
-    final scheme = theme.colorScheme;
-    final items = <_StatItem>[
-      _StatItem(
-        icon: Icons.calendar_today_outlined,
-        label: 'Tổng lượt đặt',
-        value: stats.totalBookings.toString(),
-        trend: '80 lượt gần nhất',
-      ),
-      _StatItem(
-        icon: Icons.event_available_outlined,
-        label: 'Trong 7 ngày',
-        value: stats.weeklyBookings.toString(),
-        trend: 'Lịch sử gần đây',
-      ),
-      _StatItem(
-        icon: Icons.receipt_long_outlined,
-        label: 'Hoá đơn đã thanh toán',
-        value: stats.paidInvoices.toString(),
-        trend: 'Trạng thái paid',
-      ),
-      _StatItem(
-        icon: Icons.notifications_active_outlined,
-        label: 'Thông báo chưa đọc',
-        value: stats.unreadNotifications.toString(),
-        trend: 'Cần xử lý',
-      ),
-    ];
-
-    return NeuContainer(
-      borderRadius: BorderRadius.circular(24),
-      color: scheme.surface,
-      borderColor: Colors.black,
-      borderWidth: 3,
-      shadowColor: Colors.black.withValues(alpha:0.25),
-      offset: const Offset(6, 6),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Thống kê nhanh',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Số liệu từ hệ thống đặt sân',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final maxWidth = constraints.maxWidth;
-                if (!maxWidth.isFinite || maxWidth <= 0) {
-                  return Column(
-                    children: [
-                      for (var i = 0; i < items.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 12),
-                        _StatCard(item: items[i]),
-                      ],
-                    ],
-                  );
-                }
-                const spacing = 12.0;
-                final itemWidth = maxWidth <= spacing
-                    ? maxWidth / 2
-                    : (maxWidth - spacing) / 2;
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (final item in items)
-                      SizedBox(
-                        width: itemWidth,
-                        child: _StatCard(item: item),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSettingsCard(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -682,107 +571,6 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
             onTap: _logout,
           ),
         ],
-      ),
-    );
-  }
-
-  _StaffStats _buildStats() {
-    final totalBookings = _bookings.length;
-    final now = DateTime.now();
-    final weekAgo = now.subtract(const Duration(days: 7));
-    final weeklyBookings = _bookings.where((booking) => booking.start.isAfter(weekAgo)).length;
-    final paidInvoices = _invoiceResponse?.invoices
-            .where((invoice) => invoice.status.toLowerCase() == 'paid')
-            .length ??
-        0;
-    final unreadNotifications =
-        _notifications.where((notification) => !notification.read).length;
-    return _StaffStats(
-      totalBookings: totalBookings,
-      weeklyBookings: weeklyBookings,
-      paidInvoices: paidInvoices,
-      unreadNotifications: unreadNotifications,
-    );
-  }
-}
-
-class _StaffStats {
-  const _StaffStats({
-    required this.totalBookings,
-    required this.weeklyBookings,
-    required this.paidInvoices,
-    required this.unreadNotifications,
-  });
-
-  final int totalBookings;
-  final int weeklyBookings;
-  final int paidInvoices;
-  final int unreadNotifications;
-}
-
-class _StatItem {
-  const _StatItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.trend,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final String trend;
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.item});
-
-  final _StatItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return NeuContainer(
-      borderRadius: BorderRadius.circular(18),
-      color: const Color(0xFFFFFAF0),
-      borderColor: Colors.black,
-      borderWidth: 2.5,
-      shadowColor: Colors.black.withValues(alpha:0.25),
-      offset: const Offset(4, 4),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: scheme.primary, width: 2),
-              ),
-              child: Icon(item.icon, color: scheme.primary, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              item.value,
-              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.label,
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            Text(
-              item.trend,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

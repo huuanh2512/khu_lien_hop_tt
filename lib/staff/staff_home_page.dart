@@ -388,6 +388,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
                   setState(() => _unreadNotificationCount = count);
                 },
               ),
+              const StaffReportsPage(embedded: true),
               const StaffBookingsPage(embedded: true),
               const StaffInvoicesPage(embedded: true),
               const StaffCustomersPage(embedded: true),
@@ -464,6 +465,11 @@ class _StaffHomePageState extends State<StaffHomePage> {
                     label: 'Thông báo',
                   ),
                   const BottomNavigationBarItem(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    activeIcon: Icon(Icons.bar_chart),
+                    label: 'Báo cáo',
+                  ),
+                  const BottomNavigationBarItem(
                     icon: Icon(Icons.event_note_outlined),
                     activeIcon: Icon(Icons.event_note),
                     label: 'Đặt sân',
@@ -522,69 +528,8 @@ class _StaffHomePageState extends State<StaffHomePage> {
         children: [
           _buildFacilityCard(_data!.facility, greetingName),
           const SizedBox(height: 16),
-          _buildQuickActionsRow(),
-          const SizedBox(height: 16),
           _buildCourtsSection(_data!.courts),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildQuickActionCard(
-            icon: Icons.bar_chart,
-            label: 'Báo cáo',
-            color: const Color(0xFFFFF4C7),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const StaffReportsPage(),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionCard({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: NeuContainer(
-        borderRadius: BorderRadius.circular(16),
-        color: color,
-        borderColor: Colors.black,
-        borderWidth: 3,
-        shadowColor: Colors.black.withValues(alpha: 0.35),
-        offset: const Offset(5, 5),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 22, color: Colors.black),
-              const SizedBox(width: 10),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
