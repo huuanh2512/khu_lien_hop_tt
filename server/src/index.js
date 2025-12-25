@@ -52,6 +52,9 @@ const SYSTEM_ACTOR_ID = (() => {
   return new ObjectId('000000000000000000000000');
 })();
 
+// Allowed statuses for courts
+const COURT_ALLOWED_STATUSES = new Set(['active', 'inactive', 'maintenance', 'deleted']);
+
 async function connectMongo() {
   client = new MongoClient(MONGODB_URI);
   await client.connect();
