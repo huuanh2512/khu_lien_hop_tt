@@ -513,7 +513,8 @@ class _StaffNotificationsPageState extends State<StaffNotificationsPage>
     return TabBar(
       controller: _tabController,
       isScrollable: true,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      // Keep vertical padding zero so the app bar height matches its constraints and avoids overflow.
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
       labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
       indicator: BoxDecoration(
         color: const Color(0xFF4CAF50),

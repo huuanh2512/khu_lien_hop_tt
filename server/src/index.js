@@ -4190,12 +4190,14 @@ app.post('/api/staff/courts/:id/maintenance', async (req, res, next) => {
       return res.status(409).json({ error: 'Court not available for the requested time' });
     }
 
+    const reasonRaw = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
     const doc = cleanObject({
       courtId: court._id,
       facilityId,
       start,
       end,
-      reason: typeof req.body?.reason === 'string' ? req.body.reason.trim() : undefined,
+      // Mongo schema requires reason; default to a generic label when none provided.
+      reason: reasonRaw || 'Maintenance',
       status: 'scheduled',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -5371,11 +5373,20 @@ app.put('/api/staff/profile', async (req, res, next) => {
     if (Object.keys($set).length) updateDoc.$set = $set;
     if (Object.keys($unset).length) updateDoc.$unset = $unset;
 
-    const result = await db.collection('users').findOneAndUpdate(
+    let result = await db.collection('users').findOneAndUpdate(
       { _id: staffUser._id, role: 'staff' },
       updateDoc,
       { returnDocument: ReturnDocument.AFTER },
     );
+
+    // Fallback for legacy accounts missing role flag
+    if (!result.value) {
+      result = await db.collection('users').findOneAndUpdate(
+        { _id: staffUser._id, status: { $ne: 'deleted' } },
+        updateDoc,
+        { returnDocument: ReturnDocument.AFTER },
+      );
+    }
 
     if (!result.value) {
       return res.status(404).json({ error: 'Staff account not found' });

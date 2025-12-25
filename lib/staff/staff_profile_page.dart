@@ -35,6 +35,9 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _pwdCurrentController = TextEditingController();
+  final _pwdNewController = TextEditingController();
+  final _pwdConfirmController = TextEditingController();
 
   bool _savingProfile = false;
   bool _changingPassword = false;
@@ -53,6 +56,9 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _pwdCurrentController.dispose();
+    _pwdNewController.dispose();
+    _pwdConfirmController.dispose();
     super.dispose();
   }
 
@@ -198,9 +204,6 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
   }
 
   void _openPasswordSheet() {
-    final currentController = TextEditingController();
-    final newController = TextEditingController();
-    final confirmController = TextEditingController();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -210,14 +213,14 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
         return Padding(
           padding: EdgeInsets.only(bottom: padding.bottom + 16, left: 16, right: 16),
           child: _PasswordForm(
-            currentController: currentController,
-            newController: newController,
-            confirmController: confirmController,
+            currentController: _pwdCurrentController,
+            newController: _pwdNewController,
+            confirmController: _pwdConfirmController,
             saving: _changingPassword,
             onSubmit: () {
-              final current = currentController.text.trim();
-              final next = newController.text.trim();
-              final confirm = confirmController.text.trim();
+              final current = _pwdCurrentController.text.trim();
+              final next = _pwdNewController.text.trim();
+              final confirm = _pwdConfirmController.text.trim();
               if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
                 _showSnackBar('Vui lòng điền đầy đủ thông tin.');
                 return;
@@ -232,11 +235,7 @@ class _StaffProfilePageState extends State<StaffProfilePage> {
           ),
         );
       },
-    ).whenComplete(() {
-      currentController.dispose();
-      newController.dispose();
-      confirmController.dispose();
-    });
+    );
   }
 
   Future<void> _logout() async {
