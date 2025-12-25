@@ -1,6 +1,5 @@
 import admin from '../firebase.js';
 import User from '../models/User.js';
-import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
 
 function extractBearerToken(headerValue) {
@@ -14,8 +13,6 @@ function extractBearerToken(headerValue) {
   const token = trimmed.slice(7).trim();
   return token.length ? token : null;
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 
 function buildIdFilterFromPayloadId(value) {
   if (!value) return null;
@@ -64,30 +61,6 @@ function extractUserIdFromJwt(payload) {
   return payload.sub ?? payload._id ?? payload.id ?? null;
 }
 
-async function resolveLegacyJwtContext(req, token) {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const candidateId = extractUserIdFromJwt(decoded);
-    const filter = buildIdFilterFromPayloadId(candidateId);
-    if (!filter) {
-      return { ok: false, error: new Error('Missing user id in JWT payload') };
-    }
-
-    const user = await User.findOne(filter);
-    if (!user) {
-      return { ok: false, error: new Error('User not found for JWT payload') };
-    }
-
-    if (!req.user) {
-      req.user = decoded;
-    }
-    req.appUser = user;
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error };
-  }
-}
-
 export async function authMiddleware(req, res, next) {
   const token = extractBearerToken(req.headers?.authorization || '');
   if (!token) {
@@ -100,15 +73,8 @@ export async function authMiddleware(req, res, next) {
     return next();
   }
 
-  const legacyResult = await resolveLegacyJwtContext(req, token);
-  if (legacyResult.ok) {
-    req.authToken = token;
-    return next();
-  }
-
-  const errorToLog = legacyResult.error ?? firebaseResult.error;
-  if (errorToLog) {
-    console.error('[authMiddleware] Failed to verify token', errorToLog);
+  if (firebaseResult.error) {
+    console.error('[authMiddleware] Failed to verify Firebase token', firebaseResult.error);
   }
   return res.status(401).json({ message: 'Invalid token' });
 }
