@@ -6962,6 +6962,10 @@ const PORT = process.env.PORT || 3000;
 
 connectMongo()
   .then(() => {
+    // Start background sweep: auto-cancel pending bookings that are too old
+    setInterval(autoCancelStaleBookings, AUTO_CANCEL_SWEEP_INTERVAL_MS);
+    // Optional first sweep on boot to clean up stale pending bookings immediately
+    autoCancelStaleBookings();
     app.listen(PORT, '0.0.0.0', () => {
       // Bind to 0.0.0.0 so cloud hosts (Render, etc.) can reach the process.
       console.log(`Server is running on port ${PORT}`);
