@@ -3971,6 +3971,10 @@ app.post('/api/staff/bookings', async (req, res, next) => {
         email: typeof customer.email === 'string' ? customer.email.trim().toLowerCase() : undefined,
         createdAt: new Date(),
       });
+      if (!doc.email) {
+        // Unique placeholder to satisfy unique index on email when customer email is not provided.
+        doc.email = `guest-${new ObjectId().toHexString()}@walkin.local`;
+      }
       const insertCustomer = await db.collection('users').insertOne(doc);
       customerId = insertCustomer.insertedId;
     }
